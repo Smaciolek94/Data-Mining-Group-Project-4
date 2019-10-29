@@ -1,3 +1,5 @@
+library(cluster)
+
 #creating some sample data
 x <- rep(0,1000)
 dim(x) <- c(1000,10)
@@ -32,5 +34,11 @@ plot(gapstatpam)
 plot(gapstathier)
 
 #silhouette statistic:
-silhouette(kmeans(x,n))
-silhouette(pam(x,4))
+#kmeans needs its own function defined first
+kmfunc <- kmeans(x,n)
+silhouette(kmfunc$cluster, dist(x)) #this one works now too
+silhouette(pam(x,n)) #this one works
+silhouette(hclust1, dist(x))
+
+#second derivative:
+sdkmeans <- sapply(1:20, FUN = kmeans(x,7))
