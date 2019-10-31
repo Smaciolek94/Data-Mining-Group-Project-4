@@ -9,11 +9,11 @@ for (i in 1:10){
 }
 
 ############################GAP STATISTIC
-#the clusGap function calculates the gap statistic for each number of clusters specified by K.max =
+#the clusGap function calculates the gap statistic for each number of clusters from 1 to K.max =
 #no need to loop it, but it will take some time to run
 
 #kmeans
-gapstatkmeans <- clusGap(x,FUN = kmeans,K.max = 20,B = 10) # last argument is the total number of clusters
+gapstatkmeans <- clusGap(x,FUN = kmeans,K.max = 20,B = 10) # last argument is the total number of bootstrap samples
 
 #PAM
 gapstatpam <- clusGap(x,FUN = pam,K.max = 20,B = 10)
@@ -28,47 +28,86 @@ hclust1 <- function(x,k){
 gapstathier <- clusGap(x,FUN = hclust1,K.max = 20, B=10)
 
 #plotting
-plot(gapstatkmeans)
-plot(gapstatpam)
-plot(gapstathier)
+#this is not necessary for the final product, it's just so you can see a visual of the output
+#this will not work if you ran the part below that converts the output to a dataframe
+#plot(gapstatkmeans)
+#plot(gapstatpam)
+#plot(gapstathier)
 
-print(min(gapstatpam$Tab[,3])) #the third column is the gap stat
-print(min(gapstatkmeans$Tab[,3])) #the third column is the gap stat
-print(min(gapstathier$Tab[,3])) #the third column is the gap stat
+#this section returns the observation number with the lowest gap stat, which corresponds to the number of 
+#clusters with the lowest gap statisitc for each method
+gapstatpam$Tab <- as.data.frame(gapstatpam$Tab)
+minpamgap <- which(gapstatpam$Tab$gap==min(gapstatpam$Tab$gap))
+
+gapstatkmeans$Tab <- as.data.frame(gapstatkmeans$Tab)
+minkmeansgap <- which(gapstatkmeans$Tab$gap==min(gapstatkmeans$Tab$gap))
+
+gapstathier$Tab <- as.data.frame(gapstathier$Tab)
+minhiergap <- which(gapstathier$Tab$gap==min(gapstathier$Tab$gap))
+
+gapstatfinal <- data.frame(minpamgap,minkmeansgap,minhiergap)
+colnames(gapstatfinal) <- c("PAM minimum", "kmeans minimum", "hierachical minimum")
+
+#the final output is printed here
+print(gapstatfinal)
 
 ################silhouette statistic:
 #the silhoutte function finds the silhoutte statistic for each point for a given number of clusters and a given 
 #clustering method.  I had to define a function that ran it for each clustering method, and then averaged
 #all of the output silhoutte values to find the silhoutte statistic for that method for that number of clusters
 #it needs to be looped in order to find the minumum
+#this function for some reason does not like when you start with 1 cluster, so the loop starts with 2 clusters
 
-silh <- function(x,n){
+#defining the functions for each method that will need to be looped
 
+silhkm <- function(x,n){
   kmfunc <- kmeans(x,n)
   silkm <- silhouette(kmfunc$cluster, dist(x)) 
-  
+  avesilkm <- mean(silkm[,3])
+  return(avesilkm)
+}
+
+silhpam <- function(x,n) {
   pamfunc <- pam(x,n)
   silpam <- silhouette(pamfunc$clustering, dist(x)) 
+  avesilpam <- mean(silpam[,3])
+  return(avesilpam)
+}
   
+silhhier <- function(x,n) {
   outhier <- hclust1(x,n)
   silhier <- silhouette(as.numeric(outhier$cluster), dist(x)) 
-    
- #finding the averages and returning just them
-  avesilkm <- mean(silkm[,3])
-  avesilpam <- mean(silpam[,3])
   avesilhier <- mean(silhier[,3])
-  out <- c(avesilkm,avesilpam,avesilhier)
-  return(out)
+  return(avesilhier)
 }
-#running the function in a loop for each possible number of clusters
 
-p <- silh(x,6) # it works when run once, but not in a cluster 
-#im still getting an error with the number of dimensions when trying to loop, but the function works when run by itself
-out <- rep(0,60)
-dim(out) <- c(20,3)
-for (n in 1:20){
-  out[n,1:3] <- silh(x,n)
+#looping
+outkmsil <- rep(0,19)
+outpamsil<- rep(0,19)
+outhiersil <- rep(0,19)
+
+for (i in 2:20){
+  n <- i
+  n <- as.numeric(n)
+  outkmsil[i] <- silhkm(x,n)
+  outpamsil[i] <- silhpam(x,n)
+  outhiersil[i] <- silhhier(x,n)
 }
+
+#finding minima and adding 1, since we started at 2 clusters 
+minoutkmsil <- which(outkmsil==min(outkmsil))
+minoutkmsil <- minoutkmsil + 1
+
+minoutpamsil <- which(outpamsil==min(outpamsil))
+minoutpamsil <- minoutpamsil + 1
+
+minouthiersil <- which(outhiersil==min(outhiersil))
+minouthiersil <- minouthiersil + 1
+
+silhouettefinal <- data.frame(minoutkmsil,minoutpamsil,minouthiersil)
+colnames(silhouttefinal) <- c(("kmeans minimum","PAM minimum","hierarchial minimum"))
+
+print(silhouettefinal)
 
 #second derivative:
 sdkmeans <- sapply(1:20, FUN = kmeans(x,7))
