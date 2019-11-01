@@ -2,7 +2,7 @@ library(cluster)
 
 #creating some sample data
 x <- rep(0,1000)
-dim(x) <- c(1000,10)
+dim(x) <- c(100,10)
 x <- as.data.frame(x)
 for (i in 1:10){
   x[,i] <- rnorm(100)
@@ -105,10 +105,32 @@ minouthiersil <- which(outhiersil==min(outhiersil))
 minouthiersil <- minouthiersil + 1
 
 silhouettefinal <- data.frame(minoutkmsil,minoutpamsil,minouthiersil)
-colnames(silhouttefinal) <- c(("kmeans minimum","PAM minimum","hierarchial minimum"))
+colnames(silhouettefinal) <- c("kmeans minimum","PAM minimum","hierarchial minimum")
 
 print(silhouettefinal)
 
 #second derivative:
-sdkmeans <- sapply(1:20, FUN = kmeans(x,7))
-sdpam <- sapply(1:20, FUN = pam(x,n))
+
+clust_sel = function(x,y,jrange=2:20,dd=2) {
+  ## x is an array, ## jrange n of clusters to be checked
+  ## y is an hclust object ## dd number of differences
+  wss4 = function(x,y,w = rep(1, length(y))) {sum(lm(x~factor(y),weights =
+                                                    w)$resid^2*w)}
+  ### wss4 calculates within cluster sum of squares
+  sm1 = NULL
+  for(i in jrange) sm1[i] = wss4(x,cutree(y,i))
+  sm1=sm1[jrange]
+  k = if(dd==1) sm1[-1] else -diff(sm1)
+  plot(jrange[-length(k)+1:0], -diff(k)/k[-length(k)]*100)
+  jrange [sort.list(diff(k)/k[-length(k)]*100)[1:4]]
+}
+
+clust_sel(x,hclust1(x,dist(x)))
+clust_sel(x,pam)
+
+kmfunc <- kmeans(x,)
+
+#if we're using the random normal data, it'd make sense for there to be 1 or 2 clusters as the best solution
+print(gapstatfinal)
+print(silhouettefinal)
+
